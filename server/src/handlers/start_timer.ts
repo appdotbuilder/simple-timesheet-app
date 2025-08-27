@@ -1,11 +1,13 @@
+import { db } from '../db';
+import { timesheetEntriesTable } from '../db/schema';
 import { type StartTimerInput, type TimesheetEntry } from '../schema';
 
 export const startTimer = async (input: StartTimerInput): Promise<TimesheetEntry> => {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is to create a new timesheet entry with start_time set to current time
-    // and end_time, duration_seconds set to null (indicating timer is running).
-    return Promise.resolve({
-        id: 0, // Placeholder ID
+  try {
+    // Insert new timesheet entry with start_time as current time
+    // end_time and duration_seconds are null (timer is running)
+    const result = await db.insert(timesheetEntriesTable)
+      .values({
         name: input.name,
         start_time: new Date(), // Current time when timer starts
         end_time: null, // Timer is running
@@ -13,6 +15,13 @@ export const startTimer = async (input: StartTimerInput): Promise<TimesheetEntry
         ticket_activity_number: input.ticket_activity_number,
         number_of_line_items: input.number_of_line_items,
         duration_seconds: null, // Not calculated yet
-        created_at: new Date() // Placeholder date
-    } as TimesheetEntry);
+      })
+      .returning()
+      .execute();
+
+    return result[0];
+  } catch (error) {
+    console.error('Timer start failed:', error);
+    throw error;
+  }
 };

@@ -1,19 +1,46 @@
+import { db } from '../db';
+import { timesheetEntriesTable } from '../db/schema';
 import { type StopTimerInput, type TimesheetEntry } from '../schema';
+import { eq, and, isNull } from 'drizzle-orm';
 
 export const stopTimer = async (input: StopTimerInput): Promise<TimesheetEntry> => {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is to update an existing timesheet entry by setting end_time to current time
-    // and calculating duration_seconds based on the difference between start_time and end_time.
-    // Should only work on entries where end_time is currently null (timer is running).
-    return Promise.resolve({
-        id: input.id,
-        name: "Placeholder Name",
-        start_time: new Date(Date.now() - 3600000), // 1 hour ago for example
-        end_time: new Date(), // Current time when timer stops
-        category: "Development & Testing" as const,
-        ticket_activity_number: null,
-        number_of_line_items: 1,
-        duration_seconds: 3600, // 1 hour in seconds
-        created_at: new Date()
-    } as TimesheetEntry);
+  try {
+    const now = new Date();
+    
+    // First, get the existing entry to validate it exists and timer is running
+    const existingEntries = await db.select()
+      .from(timesheetEntriesTable)
+      .where(
+        and(
+          eq(timesheetEntriesTable.id, input.id),
+          isNull(timesheetEntriesTable.end_time) // Only entries with running timers
+        )
+      )
+      .execute();
+
+    if (existingEntries.length === 0) {
+      throw new Error(`No running timer found with id ${input.id}`);
+    }
+
+    const existingEntry = existingEntries[0];
+    
+    // Calculate duration in seconds
+    const startTime = existingEntry.start_time;
+    const durationSeconds = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+
+    // Update the entry with end_time and duration_seconds
+    const result = await db.update(timesheetEntriesTable)
+      .set({
+        end_time: now,
+        duration_seconds: durationSeconds
+      })
+      .where(eq(timesheetEntriesTable.id, input.id))
+      .returning()
+      .execute();
+
+    return result[0];
+  } catch (error) {
+    console.error('Timer stop failed:', error);
+    throw error;
+  }
 };
