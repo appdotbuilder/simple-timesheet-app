@@ -20,12 +20,15 @@ function App() {
     name: DEFAULT_USER_NAME,
     category: 'Development & Testing',
     ticket_activity_number: null,
-    number_of_line_items: 1
+    number_of_line_items: 0
   });
 
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<Category | 'all'>('all');
+  
+  // Edit state
+  const [editingEntry, setEditingEntry] = useState<TimesheetEntry | null>(null);
 
   // Update current time every second for timer display
   useEffect(() => {
@@ -82,7 +85,7 @@ function App() {
         name: DEFAULT_USER_NAME,
         category: 'Development & Testing',
         ticket_activity_number: null,
-        number_of_line_items: 1
+        number_of_line_items: 0
       });
     } catch (error) {
       console.error('Failed to start timer:', error);
@@ -129,6 +132,33 @@ function App() {
     } catch (error) {
       console.error('Failed to delete entry:', error);
     }
+  };
+
+  // Update entry
+  const handleUpdateEntry = async (updatedEntry: TimesheetEntry) => {
+    try {
+      const result = await trpc.updateTimesheetEntry.mutate({
+        id: updatedEntry.id,
+        name: updatedEntry.name,
+        category: updatedEntry.category,
+        ticket_activity_number: updatedEntry.ticket_activity_number,
+        number_of_line_items: updatedEntry.number_of_line_items
+      });
+      
+      // Update the entry in the list
+      setEntries((prev: TimesheetEntry[]) => 
+        prev.map(entry => entry.id === result.id ? result : entry)
+      );
+      
+      setEditingEntry(null);
+    } catch (error) {
+      console.error('Failed to update entry:', error);
+    }
+  };
+
+  // Close edit dialog
+  const handleCloseEdit = () => {
+    setEditingEntry(null);
   };
 
   // Export data
@@ -211,6 +241,10 @@ function App() {
           <TimesheetTable
             entries={entries}
             onDeleteEntry={handleDeleteEntry}
+            onEditEntry={setEditingEntry}
+            onUpdateEntry={handleUpdateEntry}
+            onCloseEdit={handleCloseEdit}
+            editingEntry={editingEntry}
             formatDuration={formatDuration}
           />
 

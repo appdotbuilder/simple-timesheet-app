@@ -83,8 +83,11 @@ export function TimerCard({
               <Input
                 id="name"
                 value={formData.name}
-                readOnly
-                className="bg-gray-50 font-medium"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setFormData((prev: StartTimerInput) => ({ ...prev, name: e.target.value }))
+                }
+                placeholder="Enter your name"
+                className="custom-focus"
               />
             </div>
             
